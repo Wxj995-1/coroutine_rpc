@@ -58,20 +58,20 @@ std::string MprpcConfig::Load(const std::string &key)
   return it->second;
 }
 
-// 去掉字符串前后的空格
+// 去掉字符串前后的空格/制表符/回车换行
 void MprpcConfig::Trim(std::string &src_buf)
 {
-  int idx = src_buf.find_first_not_of(' ');
+  int idx = src_buf.find_first_not_of(" \t\r\n");
   if (idx != -1)
   {
-    // 说明字符串前面有空格
+    // 说明字符串前面有空白字符
     src_buf = src_buf.substr(idx, src_buf.size() - idx);
   }
-  // 去掉字符串后面多余的空格
-  idx = src_buf.find_last_not_of(' ');
+  // 去掉字符串后面多余的空白字符
+  idx = src_buf.find_last_not_of(" \t\r\n");
   if (idx != -1)
   {
-    // 说明字符串后面有空格
+    // 说明字符串后面有空白字符
     src_buf = src_buf.substr(0, idx + 1);
   }
 }

@@ -1,6 +1,8 @@
 #pragma once
 #include "lockqueue.h"
 #include <string>
+#include <string.h>
+#include <stdio.h>
 
 // 从完整路径中截取文件名
 #define LOG_BASENAME(p) (strrchr(p, '/') ? strrchr(p, '/') + 1 : p)

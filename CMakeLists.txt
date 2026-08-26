@@ -12,9 +12,13 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 # 设置项目编译头文件搜索路径 -I
 include_directories(${PROJECT_SOURCE_DIR}/src/include)
+include_directories(${PROJECT_SOURCE_DIR}/src)
 include_directories(${PROJECT_SOURCE_DIR}/example)
 # 设置项目库文件搜索路径 -L
 link_directories(${PROJECT_SOURCE_DIR}/lib)
+
+# 协程 hook 使用 RTLD_NEXT 等 GNU 扩展，以及 x86_64 汇编
+add_compile_options(-std=c++14 -g -D_GNU_SOURCE)
 
 # src包含了mprpc框架所有的相关代码
 add_subdirectory(src)
