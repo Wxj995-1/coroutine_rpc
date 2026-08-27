@@ -3,7 +3,7 @@
 #include "friend.pb.h"
 #include "mprpcapplication.h"
 #include "rpcprovider.h"
-#include "logger.h"
+#include "comm/log.h"
 class FriendService : public fixbug::FiendServiceRpc
 {
 public:
@@ -40,9 +40,9 @@ private:
 
 int main(int argc, char **argv)
 {
-  LOG_INFO("main fun start!");
   // 调用框架的初始化操作
   MprpcApplication::Init(argc, argv);
+  AppInfoLog("main fun start!");
 
   // provider是一个rpc网络服务对象。把UserService对象发布到rpc节点上
   RpcProvider provider;

@@ -1,6 +1,5 @@
 #pragma once
 #include "google/protobuf/service.h"
-#include "logger.h"
 #include <memory>
 #include <string>
 #include <unordered_map>

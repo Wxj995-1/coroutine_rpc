@@ -7,6 +7,7 @@
 #include "mprpcapplication.h"
 #include "zookeeperutil.h"
 #include "comm/config.h"
+#include "comm/log.h"
 
 void RpcProvider::NotifyService(google::protobuf::Service *service)
 {
@@ -16,14 +17,14 @@ void RpcProvider::NotifyService(google::protobuf::Service *service)
   std::string service_name = pserviceDesc->name();
   int methodCnt = pserviceDesc->method_count();
 
-  LOG_INFO("service_name:%s", service_name.c_str());
+  InfoLog << "service_name:" << service_name;
   for (int i = 0; i < methodCnt; ++i)
   {
     const google::protobuf::MethodDescriptor *pmethodDesc = pserviceDesc->method(i);
     std::string method_name = pmethodDesc->name();
     service_info.m_methodNames.push_back(method_name);
 
-    LOG_INFO("method_name:%s", method_name.c_str());
+    InfoLog << "method_name:" << method_name;
   }
   service_info.m_service = service;
   m_serviceMap.insert({service_name, service_info});
@@ -62,7 +63,7 @@ void RpcProvider::Run()
     }
   }
 
-  LOG_INFO("RpcProvider start service at ip:%s port: %d", ip.c_str(), port);
+  InfoLog << "RpcProvider start service at ip:" << ip << " port: " << port;
   // start net server（阻塞在main reactor loop）
   server->start();
 }

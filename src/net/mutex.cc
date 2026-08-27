@@ -1,5 +1,3 @@
-#pragma once
-
 #include <pthread.h>
 #include <memory>
 #include "net/mutex.h"

@@ -1,4 +1,5 @@
 #include "mprpcapplication.h"
+#include "comm/log.h"
 #include <iostream>
 #include <unistd.h>
 #include <string>
@@ -40,6 +41,8 @@ void MprpcApplication::Init(int argc, char **argv)
 
   // 开始加载配置文件了 rpcserver_ip=  rpcserver_port   zookeeper_ip=  zookepper_port=
   m_config.LoadConfigFile(config_file.c_str());
+  crpc::GetConfig()->initFromFile();
+  crpc::InitLogger();
 
   // std::cout << "rpcserverip:" << m_config.Load("rpcserverip") << std::endl;
   // std::cout << "rpcserverport:" << m_config.Load("rpcserverport") << std::endl;

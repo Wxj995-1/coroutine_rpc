@@ -28,6 +28,8 @@ void RpcDispatcher::dispatch(AbstractData* data, TcpConnection* conn) {
 
   std::string service_name = tmp->service_name;
   std::string method_name = tmp->method_name;
+  Coroutine::GetCurrentCoroutine()->getRunTime()->m_interface_name =
+      service_name + "." + method_name;
 
   RpcStruct reply_pk;
   reply_pk.msg_no = tmp->msg_no;

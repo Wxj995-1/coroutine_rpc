@@ -2,7 +2,6 @@
 #include <google/protobuf/service.h>
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/message.h>
-#include "logger.h"
 class MprpcChannel : public google::protobuf::RpcChannel
 {
 public:
