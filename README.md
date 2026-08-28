@@ -32,6 +32,65 @@ example/caller/      服务调用方示例
 
 `err_code` 和 `err_info` 会随响应包传输到客户端；原先用于框架头的 `RpcHeader.proto` 已移除。
 
+## 异步 RPC Channel
+
+`RpcAsyncChannel` 参考 TinyRPC 的实现：在当前服务协程中发起调用，把实际 RPC 投递到其他 IO 线程，完成后再切回发起调用的 IO 线程。请求对象、响应对象、控制器和回调必须使用 `shared_ptr`，并在调用 stub 前通过 `saveCallee` 保存生命周期：
+
+```cpp
+#include "rpc/rpc_closure.h"
+#include "rpc/rpcasyncchannel.h"
+#include "rpc/rpccontroller.h"
+
+auto channel = std::make_shared<RpcAsyncChannel>();
+auto controller = std::make_shared<RpcController>();
+auto request = std::make_shared<fixbug::LoginRequest>();
+auto response = std::make_shared<fixbug::LoginResponse>();
+auto closure = std::make_shared<crpc::RpcClosure>([]() {
+  // RPC 完成后在发起调用的 IO 线程执行。
+});
+
+channel->saveCallee(controller, request, response, closure);
+fixbug::UserServiceRpc_Stub stub(channel.get());
+stub.Login(controller.get(), request.get(), response.get(), nullptr);
+
+// 当前服务的响应依赖这次 RPC 结果时，在返回服务方法前等待。
+channel->wait();
+if (controller->Failed()) {
+  ErrorLog << controller->ErrorText();
+}
+```
+
+当前实现的使用边界：
+
+- 必须由 `RpcProvider` 的 IO 协程发起，不能在普通 `main` 线程中直接使用。
+- 调用 stub 前必须先调用 `saveCallee`，并用 `std::make_shared<RpcAsyncChannel>()` 创建 Channel。
+- 如果当前服务响应依赖异步调用结果，必须在服务方法返回前调用 `wait()`；当前 dispatcher 仍在服务方法返回后立即编码响应。
+- 回调请使用 `crpc::RpcClosure`，不要把 protobuf 的自删除 `NewCallback` 直接交给 `shared_ptr` 管理。
+
+### 异步示例
+
+`example/async_channel` 使用三个独立进程验证完整链路：
+
+```text
+Consumer --CreateOrder--> 服务 A --RpcAsyncChannel::Verify--> 服务 B
+Consumer <--订单结果------ 服务 A <----------认证结果---------- 服务 B
+```
+
+Consumer 会执行两个测试：
+
+1. `A to B success`：服务 B 认证成功，服务 A 等待异步结果后创建订单。
+2. `A to B business failure`：异步 RPC 正常完成，但服务 B 返回密码错误，服务 A 将业务错误返回 Consumer。
+
+先启动 ZooKeeper，再按顺序打开三个终端运行：
+
+```bash
+./build/bin/async_service_b -i config/async_service_b.conf
+./build/bin/async_service_a -i config/async_service_a.conf
+./build/bin/async_consumer -i config/async_consumer.conf
+```
+
+服务 B 日志会出现 `Verify finished`；服务 A 日志会依次出现异步回调和 `CreateOrder resumed`。
+
 ## 构建
 
 ```bash

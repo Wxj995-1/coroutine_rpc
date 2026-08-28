@@ -53,7 +53,10 @@ void RpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
   pb_struct.service_name = service_name;
   pb_struct.method_name = method_name;
   pb_struct.pb_data = args_str;
-  pb_struct.msg_no = crpc::MsgReqUtil::genMsgNumber();
+  pb_struct.msg_no =
+      rpc_controller != nullptr && !rpc_controller->MsgSeq().empty()
+          ? rpc_controller->MsgSeq()
+          : crpc::MsgReqUtil::genMsgNumber();
 
   crpc::NetAddress::ptr addr = std::make_shared<crpc::IPAddress>(ip, port);
   crpc::TcpClient::ptr client = std::make_shared<crpc::TcpClient>(addr);

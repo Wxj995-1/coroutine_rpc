@@ -1,4 +1,5 @@
 #include "rpc/rpcprovider.h"
+#include "application/rpcruntime.h"
 #include <string>
 #include <functional>
 #include <string.h>
@@ -41,6 +42,7 @@ void RpcProvider::Run()
 
   // 创建协程化TcpServer（主reactor accept + io线程池 + 每条连接一个协程）
   crpc::TcpServer::ptr server = std::make_shared<crpc::TcpServer>(addr);
+  crpc::SetRpcServer(server);
 
   // 把服务注册进dispatcher
   for (auto &sp : m_serviceMap)
@@ -68,4 +70,5 @@ void RpcProvider::Run()
   InfoLog << "RpcProvider start service at ip:" << ip << " port: " << port;
   // start net server（阻塞在main reactor loop）
   server->start();
+  crpc::SetRpcServer(nullptr);
 }
