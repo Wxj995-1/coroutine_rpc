@@ -1,8 +1,8 @@
 #include <iostream>
-#include "mprpcapplication.h"
-#include "friend.pb.h"
-#include "mprpccontroller.h"
-#include "mprpcchannel.h"
+#include "application/mprpcapplication.h"
+#include "generated/friend.pb.h"
+#include "rpc/mprpccontroller.h"
+#include "rpc/mprpcchannel.h"
 int main(int argc, char **argv)
 {
   // 整个程序启动以后，想使用mprpc框架来享受rpc服务调用，一定需要先调用框架的初始化函数（只初始化一次）

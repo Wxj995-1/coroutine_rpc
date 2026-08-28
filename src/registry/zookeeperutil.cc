@@ -1,5 +1,5 @@
 #include "comm/config.h"
-#include "zookeeperutil.h"
+#include "registry/zookeeperutil.h"
 #include <semaphore.h>
 #include <iostream>
 

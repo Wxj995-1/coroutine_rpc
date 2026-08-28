@@ -2,8 +2,5 @@
 
 set -e
 
-rm -rf `pwd`/build/*
-cd `pwd`/build &&
-	cmake .. &&
-	make
-
+cmake -S . -B build
+cmake --build build -j

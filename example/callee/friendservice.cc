@@ -1,8 +1,8 @@
 #include <iostream>
 #include <string>
-#include "friend.pb.h"
-#include "mprpcapplication.h"
-#include "rpcprovider.h"
+#include "generated/friend.pb.h"
+#include "application/mprpcapplication.h"
+#include "rpc/rpcprovider.h"
 #include "comm/log.h"
 class FriendService : public fixbug::FiendServiceRpc
 {

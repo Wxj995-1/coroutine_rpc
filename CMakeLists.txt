@@ -1,26 +1,14 @@
-# 设置cmake的最低版本和项目名称
-cmake_minimum_required(VERSION 3.0)
-project(mprpc)
+cmake_minimum_required(VERSION 3.13)
+project(mprpc LANGUAGES CXX)
 
-# 生成debug版本，可以进行gdb调试
-set(CMAKE_BUILD_TYPE "Debug")
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Debug)
+endif()
 
-# 设置项目可执行文件输出的路径
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
-# 设置项目库文件输出的路径
-set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
+# Keep all generated artifacts in the build tree.
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
-# 设置项目编译头文件搜索路径 -I
-include_directories(${PROJECT_SOURCE_DIR}/src/include)
-include_directories(${PROJECT_SOURCE_DIR}/src)
-include_directories(${PROJECT_SOURCE_DIR}/example)
-# 设置项目库文件搜索路径 -L
-link_directories(${PROJECT_SOURCE_DIR}/lib)
-
-# 协程 hook 使用 RTLD_NEXT 等 GNU 扩展，以及 x86_64 汇编
-add_compile_options(-std=c++14 -g -D_GNU_SOURCE)
-
-# src包含了mprpc框架所有的相关代码
 add_subdirectory(src)
-# example包含了mprpc框架使用的示例代码
 add_subdirectory(example)

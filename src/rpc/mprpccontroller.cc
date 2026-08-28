@@ -1,4 +1,4 @@
-#include "mprpccontroller.h"
+#include "rpc/mprpccontroller.h"
 
 MprpcController::MprpcController()
 {

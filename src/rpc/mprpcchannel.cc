@@ -1,9 +1,8 @@
-#include "mprpcchannel.h"
+#include "rpc/mprpcchannel.h"
 #include <string>
 #include <stdlib.h>
-#include "mprpcapplication.h"
-#include "mprpccontroller.h"
-#include "zookeeperutil.h"
+#include "rpc/mprpccontroller.h"
+#include "registry/zookeeperutil.h"
 #include "rpc/rpc_data.h"
 #include "net/net_address.h"
 #include "net/tcp/tcp_client.h"

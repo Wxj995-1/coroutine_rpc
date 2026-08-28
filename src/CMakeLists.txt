@@ -1,8 +1,13 @@
-# 开启汇编语言支持，编译 coctx_swap.S
 enable_language(ASM)
 
-# 收集 src 下所有源文件（含子目录协程/网络/RPC模块）
-file(GLOB_RECURSE SRC_LIST ${CMAKE_CURRENT_SOURCE_DIR}/*.cc ${CMAKE_CURRENT_SOURCE_DIR}/*.S)
+file(GLOB_RECURSE MPRPC_SOURCES CONFIGURE_DEPENDS
+  "${CMAKE_CURRENT_SOURCE_DIR}/*.cc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/*.S"
+)
 
-add_library(mprpc ${SRC_LIST})
+add_library(mprpc ${MPRPC_SOURCES})
+
+target_compile_features(mprpc PUBLIC cxx_std_14)
+target_compile_definitions(mprpc PRIVATE _GNU_SOURCE)
+target_include_directories(mprpc PUBLIC ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(mprpc pthread zookeeper_mt protobuf dl)

@@ -6,7 +6,7 @@
 #include "net/byte.h"
 #include "comm/log.h"
 #include "comm/msg_req.h"
-#include "../rpcheader.pb.h"
+#include "generated/rpcheader.pb.h"
 
 namespace crpc {
 

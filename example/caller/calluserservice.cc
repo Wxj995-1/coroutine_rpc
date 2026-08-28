@@ -1,7 +1,7 @@
 #include <iostream>
-#include "mprpcapplication.h"
-#include "user.pb.h"
-#include "mprpcchannel.h"
+#include "application/mprpcapplication.h"
+#include "generated/user.pb.h"
+#include "rpc/mprpcchannel.h"
 int main(int argc, char **argv)
 {
   // 整个程序启动 使用mprpc框架 需使用初始化函数
