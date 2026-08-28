@@ -1,7 +1,7 @@
-#include "rpc/mprpcchannel.h"
+#include "rpc/rpcchannel.h"
 #include <string>
 #include <stdlib.h>
-#include "rpc/mprpccontroller.h"
+#include "rpc/rpccontroller.h"
 #include "registry/zookeeperutil.h"
 #include "rpc/rpc_data.h"
 #include "net/net_address.h"
@@ -10,7 +10,7 @@
 #include "comm/msg_req.h"
 
 // 所有通过stub代理对象调用的rpc方法，都走到这里了，统一做rpc方法调用的数据序列化和网络发送
-void MprpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
+void RpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
                               google::protobuf::RpcController *controller,
                               const google::protobuf::Message *request,
                               google::protobuf::Message *response,
@@ -46,7 +46,7 @@ void MprpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method,
   std::string ip = host_data.substr(0, idx);
   uint16_t port = atoi(host_data.substr(idx + 1, host_data.size() - idx).c_str());
 
-  MprpcController *rpc_controller = dynamic_cast<MprpcController *>(controller);
+  RpcController *rpc_controller = dynamic_cast<RpcController *>(controller);
 
   // 组织请求包：service_name + method_name + args + msg_no
   crpc::RpcStruct pb_struct;

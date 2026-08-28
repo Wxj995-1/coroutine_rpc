@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 #include "generated/user.pb.h"
-#include "application/mprpcapplication.h"
+#include "application/rpcapplication.h"
 #include "rpc/rpcprovider.h"
 
 class UserService : public fixbug::UserServiceRpc
@@ -64,7 +64,7 @@ public:
 int main(int argc, char **argv)
 {
   // 调用框架的初始化操作
-  MprpcApplication::Init(argc, argv);
+  RpcApplication::Init(argc, argv);
 
   // provider是一个rpc网络服务对象。把UserService对象发布到rpc节点上
   RpcProvider provider;

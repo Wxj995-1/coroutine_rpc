@@ -2,10 +2,10 @@
 #include <google/protobuf/service.h>
 #include <string>
 
-class MprpcController : public google::protobuf::RpcController
+class RpcController : public google::protobuf::RpcController
 {
 public:
-  MprpcController();
+  RpcController();
   void Reset();
   bool Failed() const;
   std::string ErrorText() const;
@@ -31,3 +31,5 @@ private:
   std::string m_msg_req;
   int m_timeout {5000};
 };
+
+using MprpcController = RpcController;

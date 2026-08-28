@@ -1,4 +1,4 @@
-#include "application/mprpcapplication.h"
+#include "application/rpcapplication.h"
 #include "comm/config.h"
 #include "comm/log.h"
 #include <iostream>
@@ -10,7 +10,7 @@ void ShowArgsHelp()
   std::cout << "format: command -i <configfile>" << std::endl;
 }
 
-void MprpcApplication::Init(int argc, char **argv)
+void RpcApplication::Init(int argc, char **argv)
 {
   if (argc < 2)
   {
@@ -52,8 +52,8 @@ void MprpcApplication::Init(int argc, char **argv)
   crpc::InitLogger();
 }
 
-MprpcApplication &MprpcApplication::GetInstance()
+RpcApplication &RpcApplication::GetInstance()
 {
-  static MprpcApplication app;
+  static RpcApplication app;
   return app;
 }

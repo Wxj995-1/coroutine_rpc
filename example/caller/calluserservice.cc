@@ -1,13 +1,13 @@
 #include <iostream>
-#include "application/mprpcapplication.h"
+#include "application/rpcapplication.h"
 #include "generated/user.pb.h"
-#include "rpc/mprpcchannel.h"
+#include "rpc/rpcchannel.h"
 int main(int argc, char **argv)
 {
-  // 整个程序启动 使用mprpc框架 需使用初始化函数
-  MprpcApplication::Init(argc, argv);
+  // 使用 RPC 服务前先初始化框架。
+  RpcApplication::Init(argc, argv);
 
-  fixbug::UserServiceRpc_Stub stub(new MprpcChannel());
+  fixbug::UserServiceRpc_Stub stub(new RpcChannel());
 
   fixbug::LoginRequest request;
   request.set_name("zhangsan");

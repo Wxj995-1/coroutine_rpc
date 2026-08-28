@@ -46,7 +46,7 @@ build/lib/libmprpc.a
 
 ## 日志配置
 
-日志系统在 `MprpcApplication::Init` 加载配置后自动启动。框架日志使用 `DebugLog`、`InfoLog`、`WarnLog`、`ErrorLog`，业务日志使用 `AppDebugLog`、`AppInfoLog`、`AppWarnLog`、`AppErrorLog`。
+日志系统在 `RpcApplication::Init` 加载配置后自动启动。框架日志使用 `DebugLog`、`InfoLog`、`WarnLog`、`ErrorLog`，业务日志使用 `AppDebugLog`、`AppInfoLog`、`AppWarnLog`、`AppErrorLog`。
 
 ```ini
 log_path=./log/
