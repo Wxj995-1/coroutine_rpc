@@ -1,6 +1,8 @@
 #pragma once
 #include <cstddef>
+#include <cstdint>
 #include <string>
+#include <unordered_map>
 
 namespace crpc {
 
@@ -17,6 +19,20 @@ const char* LogLevelToString(LogLevel level);
 
 class Config {
  public:
+  static Config& Instance();
+
+  bool loadFromFile(const std::string& file_path);
+  std::string get(const std::string& key) const;
+
+  bool isLoaded() const {
+    return m_loaded;
+  }
+
+  std::string m_rpc_server_ip {"127.0.0.1"};
+  uint16_t m_rpc_server_port {8000};
+  std::string m_zookeeper_ip {"127.0.0.1"};
+  uint16_t m_zookeeper_port {2181};
+
   std::string m_log_path {"./log/"};
   std::string m_log_prefix {"coroutine_rpc"};
   std::size_t m_log_max_file_size {5 * 1024 * 1024};
@@ -32,7 +48,13 @@ class Config {
   int m_timewheel_bucket_num {10};
   int m_timewheel_inteval {10};  // second
 
-  void initFromFile();
+ private:
+  Config() = default;
+  Config(const Config&) = delete;
+  Config& operator=(const Config&) = delete;
+
+  bool m_loaded {false};
+  std::unordered_map<std::string, std::string> m_extra_values;
 };
 
 Config* GetConfig();

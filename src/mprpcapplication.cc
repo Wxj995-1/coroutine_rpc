@@ -1,10 +1,9 @@
 #include "mprpcapplication.h"
+#include "comm/config.h"
 #include "comm/log.h"
 #include <iostream>
 #include <unistd.h>
 #include <string>
-
-MprpcConfig MprpcApplication::m_config;
 
 void ShowArgsHelp()
 {
@@ -39,24 +38,22 @@ void MprpcApplication::Init(int argc, char **argv)
     }
   }
 
-  // 开始加载配置文件了 rpcserver_ip=  rpcserver_port   zookeeper_ip=  zookepper_port=
-  m_config.LoadConfigFile(config_file.c_str());
-  crpc::GetConfig()->initFromFile();
-  crpc::InitLogger();
+  if (config_file.empty())
+  {
+    ShowArgsHelp();
+    exit(EXIT_FAILURE);
+  }
 
-  // std::cout << "rpcserverip:" << m_config.Load("rpcserverip") << std::endl;
-  // std::cout << "rpcserverport:" << m_config.Load("rpcserverport") << std::endl;
-  // std::cout << "zookeeperip:" << m_config.Load("zookeeperip") << std::endl;
-  // std::cout << "zookeeperport:" << m_config.Load("zookeeperport") << std::endl;
+  if (!crpc::GetConfig()->loadFromFile(config_file))
+  {
+    std::cerr << "load config failed: " << config_file << std::endl;
+    exit(EXIT_FAILURE);
+  }
+  crpc::InitLogger();
 }
 
 MprpcApplication &MprpcApplication::GetInstance()
 {
   static MprpcApplication app;
   return app;
-}
-
-MprpcConfig &MprpcApplication::GetConfig()
-{
-  return m_config;
 }

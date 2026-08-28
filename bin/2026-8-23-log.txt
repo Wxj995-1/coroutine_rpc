@@ -1,8 +1,0 @@
-16:13:40 =>[info] [friendservice.cc:43 main] main fun start!
-16:13:40 =>[info] [rpcprovider.cc:26 NotifyService] service_name:FiendServiceRpc
-16:13:40 =>[info] [rpcprovider.cc:35 NotifyService] method_name:GetFriendsList
-16:13:40 =>[info] [rpcprovider.cc:57 Run] RpcProvider start service at ip:127.0.0.1 port: 8000
-19:35:36 =>[info] [friendservice.cc:43 main] main fun start!
-19:35:36 =>[info] [rpcprovider.cc:26 NotifyService] service_name:FiendServiceRpc
-19:35:36 =>[info] [rpcprovider.cc:35 NotifyService] method_name:GetFriendsList
-19:35:36 =>[info] [rpcprovider.cc:76 Run] RpcProvider start service at ip:127.0.0.1 port: 8000

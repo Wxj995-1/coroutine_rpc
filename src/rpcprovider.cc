@@ -4,7 +4,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <google/protobuf/descriptor.h>
-#include "mprpcapplication.h"
 #include "zookeeperutil.h"
 #include "comm/config.h"
 #include "comm/log.h"
@@ -33,8 +32,9 @@ void RpcProvider::NotifyService(google::protobuf::Service *service)
 // 启动rpc服务节点 开始提供rpc服务
 void RpcProvider::Run()
 {
-  std::string ip = MprpcApplication::GetConfig().Load("rpcserverip");
-  uint16_t port = atoi(MprpcApplication::GetConfig().Load("rpcserverport").c_str());
+  crpc::Config* config = crpc::GetConfig();
+  const std::string& ip = config->m_rpc_server_ip;
+  uint16_t port = config->m_rpc_server_port;
   crpc::NetAddress::ptr addr = std::make_shared<crpc::IPAddress>(ip, port);
 
   // 创建协程化TcpServer（主reactor accept + io线程池 + 每条连接一个协程）
