@@ -10,7 +10,6 @@ proto/               protobuf 源文件
 src/application/     框架初始化入口
 src/comm/            配置、日志和通用组件
 src/coroutine/       协程与 hook
-src/generated/       框架协议生成代码
 src/net/             Reactor 与 TCP 网络层
 src/registry/        ZooKeeper 注册中心
 src/rpc/             RPC Channel、Provider、编解码与分发
@@ -21,10 +20,23 @@ example/caller/      服务调用方示例
 
 项目不再使用单独的 `include/` 目录。头文件与对应实现放在同一功能模块中，引用路径从 `src/` 或 `example/` 开始。
 
+## RPC 线协议
+
+框架头采用 TinyPB 风格的固定顺序二进制协议，业务请求和响应正文仍使用 protobuf：
+
+```text
+[START][packet_len][msg_no_len][msg_no]
+[service_full_name_len][service_full_name]
+[err_code][err_info_len][err_info][pb_data][checksum][END]
+```
+
+`err_code` 和 `err_info` 会随响应包传输到客户端；原先用于框架头的 `RpcHeader.proto` 已移除。
+
 ## 构建
 
 ```bash
 bash autobuild.sh
+ctest --test-dir build --output-on-failure
 ```
 
 构建结果位于：

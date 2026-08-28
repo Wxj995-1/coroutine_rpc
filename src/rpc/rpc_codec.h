@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "net/abstract_codec.h"
 #include "net/abstract_data.h"
 #include "net/tcp/tcp_buffer.h"
@@ -11,16 +13,16 @@ class RpcCodeC : public AbstractCodeC {
  public:
   RpcCodeC();
 
-  ~RpcCodeC();
+  ~RpcCodeC() override;
 
-  void encode(TcpBuffer* buf, AbstractData* data);
+  void encode(TcpBuffer* buf, AbstractData* data) override;
 
-  void decode(TcpBuffer* buf, AbstractData* data);
+  void decode(TcpBuffer* buf, AbstractData* data) override;
 
-  virtual ProtocalType getProtocalType();
+  ProtocalType getProtocalType() override;
 
  private:
-  const char* encodePbData(RpcStruct* data, int& len);
+  bool encodePbData(RpcStruct* data, std::vector<char>& frame);
 };
 
 }  // namespace crpc
