@@ -1,6 +1,5 @@
 #include "comm/log.h"
 
-#include <algorithm>
 #include <cerrno>
 #include <chrono>
 #include <cstring>
@@ -46,19 +45,13 @@ const char* BaseName(const char* path) {
     return "";
   }
   const char* slash = std::strrchr(path, '/');
-  const char* backslash = std::strrchr(path, '\\');
-  const char* last = slash;
-  if (backslash != nullptr && (last == nullptr || backslash > last)) {
-    last = backslash;
-  }
-  return last == nullptr ? path : last + 1;
+  return slash == nullptr ? path : slash + 1;
 }
 
 std::string NormalizeLogPath(std::string path) {
   if (path.empty()) {
     path = "./";
   }
-  std::replace(path.begin(), path.end(), '\\', '/');
   if (path.back() != '/') {
     path.push_back('/');
   }
