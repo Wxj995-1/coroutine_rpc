@@ -19,14 +19,14 @@ void RpcProvider::NotifyService(google::protobuf::Service *service)
   std::string service_name = pserviceDesc->name();
   int methodCnt = pserviceDesc->method_count();
 
-  InfoLog << "service_name:" << service_name;
   for (int i = 0; i < methodCnt; ++i)
   {
     const google::protobuf::MethodDescriptor *pmethodDesc = pserviceDesc->method(i);
     std::string method_name = pmethodDesc->name();
     service_info.m_methodNames.push_back(method_name);
 
-    InfoLog << "method_name:" << method_name;
+    DebugLog << "event=service_declared service=" << service_name
+             << " method=" << method_name;
   }
   service_info.m_service = service;
   m_serviceMap.insert({service_name, service_info});
@@ -67,7 +67,8 @@ void RpcProvider::Run()
     }
   }
 
-  InfoLog << "RpcProvider start service at ip:" << ip << " port: " << port;
+  InfoLog << "event=server_starting listen=" << ip << ":" << port
+          << " io_threads=" << config->m_iothread_num;
   // start net server（阻塞在main reactor loop）
   server->start();
   crpc::SetRpcServer(nullptr);

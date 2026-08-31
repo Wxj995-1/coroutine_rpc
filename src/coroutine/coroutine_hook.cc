@@ -30,21 +30,19 @@ void SetHook(bool value) {
 void toEpoll(FdEvent::ptr fd_event, int events) {
   Coroutine* cur_cor = Coroutine::GetCurrentCoroutine();
   if (events & IOEvent::READ) {
-    DebugLog << "fd:[" << fd_event->getFd() << "], register read event to epoll";
+    DebugLog << "event=fd_event_registered operation=read fd=" << fd_event->getFd();
     fd_event->setCoroutine(cur_cor);
     fd_event->addListenEvents(IOEvent::READ);
   }
   if (events & IOEvent::WRITE) {
-    DebugLog << "fd:[" << fd_event->getFd() << "], register write event to epoll";
+    DebugLog << "event=fd_event_registered operation=write fd=" << fd_event->getFd();
     fd_event->setCoroutine(cur_cor);
     fd_event->addListenEvents(IOEvent::WRITE);
   }
 }
 
 ssize_t read_hook(int fd, void* buf, size_t count) {
-  DebugLog << "this is hook read";
   if (Coroutine::IsMainCoroutine()) {
-    DebugLog << "hook disable, call sys read func";
     return g_sys_read_fun(fd, buf, count);
   }
 
@@ -64,20 +62,19 @@ ssize_t read_hook(int fd, void* buf, size_t count) {
 
   toEpoll(fd_event, IOEvent::READ);
 
-  DebugLog << "read func to yield";
+  DebugLog << "event=coroutine_yield operation=read fd=" << fd
+           << " requested_bytes=" << count;
   Coroutine::Yield();
 
   fd_event->delListenEvents(IOEvent::READ);
   fd_event->clearCoroutine();
 
-  DebugLog << "read func yield back, now to call sys read";
+  DebugLog << "event=coroutine_resumed operation=read fd=" << fd;
   return g_sys_read_fun(fd, buf, count);
 }
 
 int accept_hook(int sockfd, struct sockaddr* addr, socklen_t* addrlen) {
-  DebugLog << "this is hook accept";
   if (Coroutine::IsMainCoroutine()) {
-    DebugLog << "hook disable, call sys accept func";
     return g_sys_accept_fun(sockfd, addr, addrlen);
   }
   Reactor::GetReactor();
@@ -96,20 +93,18 @@ int accept_hook(int sockfd, struct sockaddr* addr, socklen_t* addrlen) {
 
   toEpoll(fd_event, IOEvent::READ);
 
-  DebugLog << "accept func to yield";
+  DebugLog << "event=coroutine_yield operation=accept fd=" << sockfd;
   Coroutine::Yield();
 
   fd_event->delListenEvents(IOEvent::READ);
   fd_event->clearCoroutine();
 
-  DebugLog << "accept func yield back, now to call sys accept";
+  DebugLog << "event=coroutine_resumed operation=accept fd=" << sockfd;
   return g_sys_accept_fun(sockfd, addr, addrlen);
 }
 
 ssize_t write_hook(int fd, const void* buf, size_t count) {
-  DebugLog << "this is hook write";
   if (Coroutine::IsMainCoroutine()) {
-    DebugLog << "hook disable, call sys write func";
     return g_sys_write_fun(fd, buf, count);
   }
   Reactor::GetReactor();
@@ -128,20 +123,19 @@ ssize_t write_hook(int fd, const void* buf, size_t count) {
 
   toEpoll(fd_event, IOEvent::WRITE);
 
-  DebugLog << "write func to yield";
+  DebugLog << "event=coroutine_yield operation=write fd=" << fd
+           << " requested_bytes=" << count;
   Coroutine::Yield();
 
   fd_event->delListenEvents(IOEvent::WRITE);
   fd_event->clearCoroutine();
 
-  DebugLog << "write func yield back, now to call sys write";
+  DebugLog << "event=coroutine_resumed operation=write fd=" << fd;
   return g_sys_write_fun(fd, buf, count);
 }
 
 int connect_hook(int sockfd, const struct sockaddr* addr, socklen_t addrlen) {
-  DebugLog << "this is hook connect";
   if (Coroutine::IsMainCoroutine()) {
-    DebugLog << "hook disable, call sys connect func";
     return g_sys_connect_fun(sockfd, addr, addrlen);
   }
   Reactor* reactor = Reactor::GetReactor();
@@ -155,14 +149,15 @@ int connect_hook(int sockfd, const struct sockaddr* addr, socklen_t addrlen) {
   fd_event->setNonBlock();
   int n = g_sys_connect_fun(sockfd, addr, addrlen);
   if (n == 0) {
-    DebugLog << "direct connect succ, return";
+    DebugLog << "event=connect_completed fd=" << sockfd << " mode=immediate";
     return n;
   } else if (errno != EINPROGRESS) {
-    DebugLog << "connect error and errno is't EINPROGRESS, errno=" << errno << ",error=" << strerror(errno);
+    ErrorLog << "event=connect_failed fd=" << sockfd
+             << " errno=" << errno << " error=\"" << strerror(errno) << "\"";
     return n;
   }
 
-  DebugLog << "errno == EINPROGRESS";
+  DebugLog << "event=connect_wait fd=" << sockfd << " reason=in_progress";
 
   toEpoll(fd_event, IOEvent::WRITE);
 
@@ -187,23 +182,22 @@ int connect_hook(int sockfd, const struct sockaddr* addr, socklen_t addrlen) {
 
   n = g_sys_connect_fun(sockfd, addr, addrlen);
   if ((n < 0 && errno == EISCONN) || n == 0) {
-    DebugLog << "connect succ";
+    DebugLog << "event=connect_completed fd=" << sockfd << " mode=async";
     return 0;
   }
 
   if (is_timeout) {
-    ErrorLog << "connect error,  timeout[ " << GetConfig()->m_max_connect_timeout << "ms]";
     errno = ETIMEDOUT;
   }
-
-  DebugLog << "connect error and errno=" << errno << ", error=" << strerror(errno);
+  ErrorLog << "event=connect_failed fd=" << sockfd
+           << " reason=" << (is_timeout ? "timeout" : "system_error")
+           << " errno=" << errno << " error=\"" << strerror(errno) << "\""
+           << " timeout_ms=" << (is_timeout ? GetConfig()->m_max_connect_timeout : 0);
   return -1;
 }
 
 unsigned int sleep_hook(unsigned int seconds) {
-  DebugLog << "this is hook sleep";
   if (Coroutine::IsMainCoroutine()) {
-    DebugLog << "hook disable, call sys sleep func";
     return g_sys_sleep_fun(seconds);
   }
 
@@ -211,7 +205,7 @@ unsigned int sleep_hook(unsigned int seconds) {
 
   bool is_timeout = false;
   auto timeout_cb = [cur_cor, &is_timeout]() {
-    DebugLog << "onTime, now resume sleep cor";
+    DebugLog << "event=sleep_completed";
     is_timeout = true;
     Coroutine::Resume(cur_cor);
   };
@@ -220,7 +214,7 @@ unsigned int sleep_hook(unsigned int seconds) {
 
   Reactor::GetReactor()->getTimer()->addTimerEvent(event);
 
-  DebugLog << "now to yield sleep";
+  DebugLog << "event=coroutine_yield operation=sleep seconds=" << seconds;
   while (!is_timeout) {
     Coroutine::Yield();
   }

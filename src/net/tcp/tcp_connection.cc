@@ -25,7 +25,8 @@ TcpConnection::TcpConnection(TcpServer* tcp_svr, IOThread* io_thread, int fd, in
   initBuffer(buff_size);
   m_loop_cor = GetCoroutinePool()->getCoroutineInstanse();
   m_state = Connected;
-  DebugLog << "succ create tcp connection[" << m_state << "], fd=" << fd;
+  DebugLog << "event=connection_created type=server fd=" << fd
+           << " peer=" << m_peer_addr->toString() << " state=" << m_state;
 }
 
 TcpConnection::TcpConnection(TcpClient* tcp_cli, Reactor* reactor, int fd, int buff_size, NetAddress::ptr peer_addr)
@@ -40,7 +41,8 @@ TcpConnection::TcpConnection(TcpClient* tcp_cli, Reactor* reactor, int fd, int b
   m_fd_event->setReactor(m_reactor);
   initBuffer(buff_size);
 
-  DebugLog << "succ create tcp connection[NotConnected]";
+  DebugLog << "event=connection_created type=client fd=" << fd
+           << " peer=" << m_peer_addr->toString() << " state=" << m_state;
 }
 
 void TcpConnection::initServer() {
@@ -70,7 +72,8 @@ TcpConnection::~TcpConnection() {
     GetCoroutinePool()->returnCoroutine(m_loop_cor);
   }
 
-  DebugLog << "~TcpConnection, fd=" << m_fd;
+  DebugLog << "event=connection_destroyed fd=" << m_fd
+           << " peer=" << m_peer_addr->toString();
 }
 
 void TcpConnection::initBuffer(int size) {
@@ -86,12 +89,14 @@ void TcpConnection::MainServerLoopCorFunc() {
 
     output();
   }
-  InfoLog << "this connection has already end loop";
+  DebugLog << "event=connection_loop_stopped fd=" << m_fd
+           << " peer=" << m_peer_addr->toString();
 }
 
 void TcpConnection::input() {
   if (m_is_over_time) {
-    InfoLog << "over timer, skip input progress";
+    WarnLog << "event=read_skipped fd=" << m_fd
+            << " peer=" << m_peer_addr->toString() << " reason=timeout";
     return;
   }
   TcpConnectionState state = getState();
@@ -116,20 +121,30 @@ void TcpConnection::input() {
 
     count += rt;
     if (m_is_over_time) {
-      InfoLog << "over timer, now break read function";
+      WarnLog << "event=read_stopped fd=" << m_fd
+              << " peer=" << m_peer_addr->toString() << " reason=timeout";
       break;
     }
     if (rt <= 0) {
-      DebugLog << "rt <= 0";
-      ErrorLog << "read empty while occur read event, because of peer close, fd= " << m_fd << ", sys error=" << strerror(errno) << ", now to clear tcp connection";
+      if (rt == 0) {
+        InfoLog << "event=connection_closed fd=" << m_fd
+                << " peer=" << m_peer_addr->toString()
+                << " reason=peer_eof action=close_connection";
+      } else {
+        ErrorLog << "event=read_failed fd=" << m_fd
+                 << " peer=" << m_peer_addr->toString()
+                 << " result=" << rt << " errno=" << errno
+                 << " error=\"" << strerror(errno)
+                 << "\" action=close_connection";
+      }
       close_flag = true;
       break;
     } else {
       if (rt == read_count) {
-        DebugLog << "read_count == rt";
+        DebugLog << "event=read_buffer_filled fd=" << m_fd
+                 << " requested_bytes=" << read_count << " actual_bytes=" << rt;
         continue;
       } else if (rt < read_count) {
-        DebugLog << "read_count > rt";
         read_all = true;
         break;
       }
@@ -137,7 +152,8 @@ void TcpConnection::input() {
   }
   if (close_flag) {
     clearClient();
-    DebugLog << "peer close, now yield current coroutine, wait main thread clear this TcpConnection";
+    DebugLog << "event=connection_cleanup_wait fd=" << m_fd
+             << " peer=" << m_peer_addr->toString();
     Coroutine::GetCurrentCoroutine()->setCanResume(false);
     Coroutine::Yield();
   }
@@ -146,7 +162,8 @@ void TcpConnection::input() {
     return;
   }
 
-  InfoLog << "recv [" << count << "] bytes data from [" << m_peer_addr->toString() << "], fd [" << m_fd << "]";
+  InfoLog << "event=data_received fd=" << m_fd
+          << " peer=" << m_peer_addr->toString() << " bytes=" << count;
   if (m_connection_type == ServerConnection) {
     TcpTimeWheel::TcpConnectionSlot::ptr tmp = m_weak_slot.lock();
     if (tmp) {
@@ -161,7 +178,9 @@ void TcpConnection::execute() {
 
     m_codec->decode(m_read_buffer.get(), data.get());
     if (!data->decode_succ) {
-      ErrorLog << "it parse request error of fd " << m_fd;
+      ErrorLog << "event=request_decode_failed fd=" << m_fd
+               << " peer=" << m_peer_addr->toString()
+               << " readable_bytes=" << m_read_buffer->readAble();
       break;
     }
     if (m_connection_type == ServerConnection) {
@@ -177,7 +196,8 @@ void TcpConnection::execute() {
 
 void TcpConnection::output() {
   if (m_is_over_time) {
-    InfoLog << "over timer, skip output progress";
+    WarnLog << "event=write_skipped fd=" << m_fd
+            << " peer=" << m_peer_addr->toString() << " reason=timeout";
     return;
   }
   while (true) {
@@ -187,7 +207,7 @@ void TcpConnection::output() {
     }
 
     if (m_write_buffer->readAble() == 0) {
-      DebugLog << "app buffer of fd[" << m_fd << "] no data to write, to yiled this coroutine";
+      DebugLog << "event=write_buffer_empty fd=" << m_fd;
       break;
     }
 
@@ -195,19 +215,32 @@ void TcpConnection::output() {
     int read_index = m_write_buffer->readIndex();
     int rt = write_hook(m_fd, &(m_write_buffer->m_buffer[read_index]), total_size);
     if (rt <= 0) {
-      ErrorLog << "write empty, error=" << strerror(errno);
+      if (rt == 0) {
+        WarnLog << "event=write_zero_progress fd=" << m_fd
+                << " peer=" << m_peer_addr->toString()
+                << " requested_bytes=" << total_size;
+      } else {
+        ErrorLog << "event=write_failed fd=" << m_fd
+                 << " peer=" << m_peer_addr->toString()
+                 << " result=" << rt << " errno=" << errno
+                 << " error=\"" << strerror(errno) << "\"";
+      }
     }
 
-    DebugLog << "succ write " << rt << " bytes";
     m_write_buffer->recycleRead(rt);
-    InfoLog << "send[" << rt << "] bytes data to [" << m_peer_addr->toString() << "], fd [" << m_fd << "]";
+    if (rt > 0) {
+      InfoLog << "event=data_sent fd=" << m_fd
+              << " peer=" << m_peer_addr->toString()
+              << " bytes=" << rt
+              << " remaining_bytes=" << m_write_buffer->readAble();
+    }
     if (m_write_buffer->readAble() <= 0) {
-      InfoLog << "send all data, now unregister write event and break";
       break;
     }
 
     if (m_is_over_time) {
-      InfoLog << "over timer, now break write function";
+      WarnLog << "event=write_stopped fd=" << m_fd
+              << " peer=" << m_peer_addr->toString() << " reason=timeout";
       break;
     }
   }
@@ -215,7 +248,8 @@ void TcpConnection::output() {
 
 void TcpConnection::clearClient() {
   if (getState() == Closed) {
-    DebugLog << "this client has closed";
+    DebugLog << "event=connection_close_skipped fd=" << m_fd
+             << " reason=already_closed";
     return;
   }
   m_fd_event->unregisterFromReactor();
@@ -229,11 +263,13 @@ void TcpConnection::clearClient() {
 void TcpConnection::shutdownConnection() {
   TcpConnectionState state = getState();
   if (state == Closed || state == NotConnected) {
-    DebugLog << "this client has closed";
+    DebugLog << "event=connection_shutdown_skipped fd=" << m_fd
+             << " state=" << state;
     return;
   }
   setState(HalfClosing);
-  InfoLog << "shutdown conn[" << m_peer_addr->toString() << "], fd=" << m_fd;
+  InfoLog << "event=connection_shutdown fd=" << m_fd
+          << " peer=" << m_peer_addr->toString();
   shutdown(m_fd_event->getFd(), SHUT_RDWR);
 }
 
@@ -248,12 +284,12 @@ TcpBuffer* TcpConnection::getOutBuffer() {
 bool TcpConnection::getResPackageData(const std::string& msg_no, RpcStruct::ptr& pb_struct) {
   auto it = m_reply_datas.find(msg_no);
   if (it != m_reply_datas.end()) {
-    DebugLog << "return a resdata";
+    DebugLog << "event=response_found request_id=" << msg_no;
     pb_struct = it->second;
     m_reply_datas.erase(it);
     return true;
   }
-  DebugLog << msg_no << "|reply data not exist";
+  DebugLog << "event=response_pending request_id=" << msg_no;
   return false;
 }
 

@@ -18,13 +18,17 @@ void RpcDispatcher::dispatch(AbstractData* data, TcpConnection* conn) {
   RpcStruct* tmp = dynamic_cast<RpcStruct*>(data);
 
   if (tmp == nullptr) {
-    ErrorLog << "dynamic_cast error";
+    ErrorLog << "event=rpc_dispatch_failed stage=request_cast"
+             << " reason=invalid_rpc_data";
     return;
   }
   Coroutine::GetCurrentCoroutine()->getRunTime()->m_msg_no = tmp->msg_no;
   setCurrentRunTime(Coroutine::GetCurrentCoroutine()->getRunTime());
 
-  InfoLog << "begin to dispatch client request, msgno=" << tmp->msg_no;
+  InfoLog << "event=rpc_dispatch_started request_id=" << tmp->msg_no
+          << " service=" << tmp->service_name
+          << " method=" << tmp->method_name
+          << " request_payload_bytes=" << tmp->pb_data.size();
 
   std::string service_name = tmp->service_name;
   std::string method_name = tmp->method_name;
@@ -41,11 +45,13 @@ void RpcDispatcher::dispatch(AbstractData* data, TcpConnection* conn) {
     reply_pk.err_code = ERROR_SERVICE_NOT_FOUND;
     std::stringstream ss;
     ss << "not found service_name:[" << service_name << "]";
-    ErrorLog << reply_pk.msg_no << "|" << ss.str();
+    ErrorLog << "event=rpc_dispatch_failed stage=service_lookup"
+             << " err_code=" << reply_pk.err_code
+             << " service=" << service_name
+             << " action=send_error_response";
     reply_pk.err_info = ss.str();
 
     conn->getCodec()->encode(conn->getOutBuffer(), dynamic_cast<AbstractData*>(&reply_pk));
-    InfoLog << "end dispatch client request, msgno=" << tmp->msg_no;
     return;
   }
 
@@ -56,7 +62,11 @@ void RpcDispatcher::dispatch(AbstractData* data, TcpConnection* conn) {
     reply_pk.err_code = ERROR_METHOD_NOT_FOUND;
     std::stringstream ss;
     ss << "not found method_name:[" << method_name << "]";
-    ErrorLog << reply_pk.msg_no << "|" << ss.str();
+    ErrorLog << "event=rpc_dispatch_failed stage=method_lookup"
+             << " err_code=" << reply_pk.err_code
+             << " service=" << service_name
+             << " method=" << method_name
+             << " action=send_error_response";
     reply_pk.err_info = ss.str();
     conn->getCodec()->encode(conn->getOutBuffer(), dynamic_cast<AbstractData*>(&reply_pk));
     return;
@@ -69,15 +79,17 @@ void RpcDispatcher::dispatch(AbstractData* data, TcpConnection* conn) {
     std::stringstream ss;
     ss << "faild to parse request data, request.name:[" << request->GetDescriptor()->full_name() << "]";
     reply_pk.err_info = ss.str();
-    ErrorLog << reply_pk.msg_no << "|" << ss.str();
+    ErrorLog << "event=rpc_dispatch_failed stage=request_deserialize"
+             << " err_code=" << reply_pk.err_code
+             << " message_type=" << request->GetDescriptor()->full_name()
+             << " request_payload_bytes=" << tmp->pb_data.size()
+             << " action=send_error_response";
     delete request;
     conn->getCodec()->encode(conn->getOutBuffer(), dynamic_cast<AbstractData*>(&reply_pk));
     return;
   }
 
-  InfoLog << "============================================================";
-  InfoLog << reply_pk.msg_no << "|Get client request data:" << request->ShortDebugString();
-  InfoLog << "============================================================";
+  DebugLog << "event=rpc_request payload=" << request->ShortDebugString();
 
   google::protobuf::Message* response = service->GetResponsePrototype(method).New();
 
@@ -86,29 +98,31 @@ void RpcDispatcher::dispatch(AbstractData* data, TcpConnection* conn) {
   RpcClosure closure([]() {});
   service->CallMethod(method, nullptr, request, response, &closure);
 
-  InfoLog << "Call [" << service_name << "." << method_name << "] succ, now send reply package";
-
   if (!(response->SerializeToString(&(reply_pk.pb_data)))) {
     reply_pk.pb_data = "";
-    ErrorLog << reply_pk.msg_no << "|reply error! encode reply package error";
+    ErrorLog << "event=rpc_dispatch_failed stage=response_serialize"
+             << " err_code=" << ERROR_FAILED_SERIALIZE
+             << " message_type=" << response->GetDescriptor()->full_name();
     reply_pk.err_code = ERROR_FAILED_SERIALIZE;
     reply_pk.err_info = "failed to serilize relpy data";
   } else {
-    InfoLog << "============================================================";
-    InfoLog << reply_pk.msg_no << "|Set server response data:" << response->ShortDebugString();
-    InfoLog << "============================================================";
+    DebugLog << "event=rpc_response payload=" << response->ShortDebugString();
   }
 
   delete request;
   delete response;
 
   conn->getCodec()->encode(conn->getOutBuffer(), dynamic_cast<AbstractData*>(&reply_pk));
+  InfoLog << "event=rpc_dispatch_completed status="
+          << (reply_pk.err_code == 0 ? "success" : "failure")
+          << " err_code=" << reply_pk.err_code
+          << " response_payload_bytes=" << reply_pk.pb_data.size();
 }
 
 void RpcDispatcher::registerService(service_ptr service) {
   std::string service_name = service->GetDescriptor()->name();
   m_service_map[service_name] = service;
-  InfoLog << "succ register service[" << service_name << "]!";
+  InfoLog << "event=service_registered service=" << service_name;
 }
 
 }  // namespace crpc
