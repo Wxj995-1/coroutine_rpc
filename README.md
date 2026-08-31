@@ -129,3 +129,5 @@ log_sync_interval=500
 ```
 
 `log_max_file_size` 的单位是 MB，`log_sync_interval` 的单位是毫秒。RPC 日志和业务日志分别写入独立文件，并按日期和文件大小轮转。
+
+Linux 进程信号由框架初始化时统一配置：忽略 `SIGPIPE`；`SIGINT` 和 `SIGTERM` 由专用 `sigwait` 线程接收，并在退出前调用 `ShutdownLogger()` 排空日志；`SIGSEGV` 和 `SIGABRT` 只向标准错误输出固定提示，随后恢复默认信号动作以保留 core dump，致命信号处理器不会调用异步日志或等待后台线程。

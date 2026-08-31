@@ -1,6 +1,7 @@
 #include "application/rpcapplication.h"
 #include "comm/config.h"
 #include "comm/log.h"
+#include "comm/process_signal.h"
 #include <iostream>
 #include <unistd.h>
 #include <string>
@@ -49,7 +50,21 @@ void RpcApplication::Init(int argc, char **argv)
     std::cerr << "load config failed: " << config_file << std::endl;
     exit(EXIT_FAILURE);
   }
+
+  if (!crpc::PrepareProcessSignals())
+  {
+    std::cerr << "prepare process signals failed" << std::endl;
+    exit(EXIT_FAILURE);
+  }
+
   crpc::InitLogger();
+
+  if (!crpc::StartSignalWaiter())
+  {
+    std::cerr << "start signal waiter failed" << std::endl;
+    crpc::ShutdownLogger();
+    exit(EXIT_FAILURE);
+  }
 }
 
 RpcApplication &RpcApplication::GetInstance()
