@@ -4,6 +4,7 @@
 #include "net/tcp/tcp_connection.h"
 #include "net/tcp/tcp_server.h"
 #include "net/tcp/tcp_client.h"
+#include "net/http/http_request.h"
 #include "rpc/rpc_data.h"
 #include "coroutine/coroutine_hook.h"
 #include "coroutine/coroutine_pool.h"
@@ -174,13 +175,20 @@ void TcpConnection::input() {
 
 void TcpConnection::execute() {
   while (m_read_buffer->readAble() > 0) {
-    std::shared_ptr<AbstractData> data = std::make_shared<RpcStruct>();
+    std::shared_ptr<AbstractData> data;
+    if (m_codec->getProtocalType() == Http_Protocal) {
+      data = std::make_shared<HttpRequest>();
+    } else {
+      data = std::make_shared<RpcStruct>();
+    }
 
     m_codec->decode(m_read_buffer.get(), data.get());
     if (!data->decode_succ) {
-      ErrorLog << "event=request_decode_failed fd=" << m_fd
-               << " peer=" << m_peer_addr->toString()
-               << " readable_bytes=" << m_read_buffer->readAble();
+      if (m_codec->getProtocalType() == TinyPb_Protocal) {
+        ErrorLog << "event=request_decode_failed protocol=rpc fd=" << m_fd
+                 << " peer=" << m_peer_addr->toString()
+                 << " readable_bytes=" << m_read_buffer->readAble();
+      }
       break;
     }
     if (m_connection_type == ServerConnection) {

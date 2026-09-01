@@ -13,6 +13,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 add_subdirectory(src)
 add_subdirectory(example)
 
+option(BUILD_TESTING "Build test targets" OFF)
 include(CTest)
 if(BUILD_TESTING)
   add_subdirectory(tests)

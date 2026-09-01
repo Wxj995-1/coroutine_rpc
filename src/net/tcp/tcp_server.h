@@ -1,6 +1,8 @@
 #pragma once
 
 #include <map>
+#include <memory>
+#include <string>
 #include <google/protobuf/service.h>
 #include "net/reactor.h"
 #include "net/fd_event.h"
@@ -13,6 +15,8 @@
 #include "net/abstract_dispatcher.h"
 
 namespace crpc {
+
+class HttpServlet;
 
 class TcpAcceptor {
  public:
@@ -46,7 +50,8 @@ class TcpServer {
  public:
   typedef std::shared_ptr<TcpServer> ptr;
 
-  TcpServer(NetAddress::ptr addr);
+  TcpServer(NetAddress::ptr addr,
+            ProtocalType type = TinyPb_Protocal);
 
   ~TcpServer();
 
@@ -55,6 +60,9 @@ class TcpServer {
   void addCoroutine(Coroutine::ptr cor);
 
   bool registerService(std::shared_ptr<google::protobuf::Service> service);
+
+  bool registerHttpServlet(const std::string& path,
+                           std::shared_ptr<HttpServlet> servlet);
 
   TcpConnection::ptr addClient(IOThread* io_thread, int fd);
 
@@ -96,6 +104,8 @@ class TcpServer {
   AbstractCodeC::ptr m_codec;
 
   IOThreadPool::ptr m_io_pool;
+
+  ProtocalType m_protocal_type {TinyPb_Protocal};
 
   TcpTimeWheel::ptr m_time_wheel;
 

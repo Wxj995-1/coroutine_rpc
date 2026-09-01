@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package asynchttpdemo;
+
+option cc_generic_services = true;
+
+message QueryAgeRequest
+{
+    int32 id = 1;
+}
+
+message QueryAgeResponse
+{
+    int32 code = 1;
+    string info = 2;
+    int32 id = 3;
+    int32 age = 4;
+}
+
+service QueryService
+{
+    rpc QueryAge(QueryAgeRequest) returns (QueryAgeResponse);
+}

@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <fcntl.h>
 #include <string.h>
+#include <utility>
 #include "net/tcp/tcp_server.h"
 #include "net/tcp/tcp_connection.h"
 #include "net/tcp/io_thread.h"
@@ -10,6 +11,9 @@
 #include "coroutine/coroutine_hook.h"
 #include "coroutine/coroutine_pool.h"
 #include "comm/config.h"
+#include "net/http/http_codec.h"
+#include "net/http/http_dispatcher.h"
+#include "net/http/http_servlet.h"
 #include "rpc/rpc_codec.h"
 #include "rpc/rpc_dispatcher.h"
 
@@ -100,11 +104,18 @@ int TcpAcceptor::toAccept() {
   return rt;
 }
 
-TcpServer::TcpServer(NetAddress::ptr addr) : m_addr(addr) {
+TcpServer::TcpServer(NetAddress::ptr addr, ProtocalType type)
+    : m_addr(addr), m_protocal_type(type) {
   m_io_pool = std::make_shared<IOThreadPool>(GetConfig()->m_iothread_num);
 
-  m_dispatcher = std::make_shared<RpcDispatcher>();
-  m_codec = std::make_shared<RpcCodeC>();
+  if (m_protocal_type == Http_Protocal) {
+    m_dispatcher = std::make_shared<HttpDispatcher>();
+    m_codec = std::make_shared<HttpCodec>();
+  } else {
+    m_dispatcher = std::make_shared<RpcDispatcher>();
+    m_codec = std::make_shared<RpcCodeC>();
+    m_protocal_type = TinyPb_Protocal;
+  }
 
   m_main_reactor = Reactor::GetReactor();
   m_main_reactor->setReactorType(MainReactor);
@@ -115,7 +126,9 @@ TcpServer::TcpServer(NetAddress::ptr addr) : m_addr(addr) {
   m_main_reactor->getTimer()->addTimerEvent(m_clear_clent_timer_event);
 
   InfoLog << "event=server_configured listen=" << m_addr->toString()
-          << " io_threads=" << GetConfig()->m_iothread_num;
+          << " io_threads=" << GetConfig()->m_iothread_num
+          << " protocol="
+          << (m_protocal_type == Http_Protocal ? "http" : "rpc");
 }
 
 void TcpServer::start() {
@@ -160,13 +173,47 @@ void TcpServer::addCoroutine(Coroutine::ptr cor) {
 }
 
 bool TcpServer::registerService(std::shared_ptr<google::protobuf::Service> service) {
+  if (m_protocal_type != TinyPb_Protocal) {
+    ErrorLog << "event=service_registration_failed"
+             << " reason=protocol_mismatch protocol=http";
+    return false;
+  }
   if (service) {
-    dynamic_cast<RpcDispatcher*>(m_dispatcher.get())->registerService(service);
+    RpcDispatcher* dispatcher =
+        dynamic_cast<RpcDispatcher*>(m_dispatcher.get());
+    if (dispatcher == nullptr) {
+      ErrorLog << "event=service_registration_failed"
+               << " reason=invalid_dispatcher";
+      return false;
+    }
+    dispatcher->registerService(service);
   } else {
     ErrorLog << "event=service_registration_failed reason=null_service";
     return false;
   }
   return true;
+}
+
+bool TcpServer::registerHttpServlet(
+    const std::string& path, std::shared_ptr<HttpServlet> servlet) {
+  if (m_protocal_type != Http_Protocal) {
+    ErrorLog << "event=http_servlet_registration_failed"
+             << " reason=protocol_mismatch protocol=rpc";
+    return false;
+  }
+  if (!servlet) {
+    ErrorLog << "event=http_servlet_registration_failed reason=null_servlet";
+    return false;
+  }
+
+  HttpDispatcher* dispatcher =
+      dynamic_cast<HttpDispatcher*>(m_dispatcher.get());
+  if (dispatcher == nullptr) {
+    ErrorLog << "event=http_servlet_registration_failed"
+             << " reason=invalid_dispatcher";
+    return false;
+  }
+  return dispatcher->registerServlet(path, std::move(servlet));
 }
 
 TcpConnection::ptr TcpServer::addClient(IOThread* io_thread, int fd) {

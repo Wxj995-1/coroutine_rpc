@@ -1,3 +1,5 @@
 add_subdirectory(callee)
 add_subdirectory(caller)
 add_subdirectory(async_channel)
+add_subdirectory(http_server)
+add_subdirectory(async_http)
