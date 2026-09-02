@@ -45,7 +45,8 @@ void RpcApplication::Init(int argc, char **argv)
     exit(EXIT_FAILURE);
   }
 
-  if (!crpc::GetConfig()->loadFromFile(config_file))
+  crpc::Config* config = crpc::GetConfig();
+  if (!config->loadFromFile(config_file))
   {
     std::cerr << "load config failed: " << config_file << std::endl;
     exit(EXIT_FAILURE);
@@ -57,7 +58,10 @@ void RpcApplication::Init(int argc, char **argv)
     exit(EXIT_FAILURE);
   }
 
-  crpc::InitLogger();
+  if (config->m_log_enable)
+  {
+    crpc::InitLogger();
+  }
 
   if (!crpc::StartSignalWaiter())
   {

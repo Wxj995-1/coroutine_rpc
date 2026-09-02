@@ -36,6 +36,7 @@ class Config {
   std::string m_log_path {"./log/"};
   std::string m_log_prefix {"coroutine_rpc"};
   std::size_t m_log_max_file_size {5 * 1024 * 1024};
+  bool m_log_enable {true};
   LogLevel m_log_level {LogLevel::DEBUG};
   LogLevel m_app_log_level {LogLevel::DEBUG};
   int m_log_sync_interval {500};  // ms

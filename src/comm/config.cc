@@ -88,12 +88,35 @@ bool ReadString(const ConfigValues& values, const std::string& key,
   return true;
 }
 
+bool ReadBoolean(const ConfigValues& values, const std::string& key,
+                 bool& result) {
+  const auto it = values.find(key);
+  if (it == values.end()) {
+    return true;
+  }
+
+  const std::string normalized = ToUpper(it->second);
+  if (normalized == "TRUE") {
+    result = true;
+    return true;
+  }
+  if (normalized == "FALSE") {
+    result = false;
+    return true;
+  }
+
+  std::cerr << "invalid config value: " << key << '=' << it->second
+            << ", expected true or false" << std::endl;
+  return false;
+}
+
 const std::unordered_set<std::string>& KnownKeys() {
   static const std::unordered_set<std::string> keys = {
       "rpcserverip",          "rpcserverport",
       "zookeeperip",         "zookeeperport",
       "log_path",            "log_prefix",
-      "log_max_file_size",   "rpc_log_level",
+      "log_max_file_size",   "log_enable",
+      "rpc_log_level",
       "app_log_level",       "log_sync_interval",
       "log_sync_inteval",    "cor_stack_size",
       "cor_pool_size",       "msg_req_len",
@@ -175,6 +198,7 @@ bool Config::loadFromFile(const std::string& file_path) {
   std::string zookeeper_ip = m_zookeeper_ip;
   std::string log_path = m_log_path;
   std::string log_prefix = m_log_prefix;
+  bool log_enable = m_log_enable;
   long long rpc_server_port = m_rpc_server_port;
   long long zookeeper_port = m_zookeeper_port;
   long long log_max_file_size_mb =
@@ -194,6 +218,7 @@ bool Config::loadFromFile(const std::string& file_path) {
       !ReadString(values, "zookeeperip", zookeeper_ip) ||
       !ReadString(values, "log_path", log_path) ||
       !ReadString(values, "log_prefix", log_prefix) ||
+      !ReadBoolean(values, "log_enable", log_enable) ||
       !ReadInteger(values, "rpcserverport", 1, 65535, rpc_server_port) ||
       !ReadInteger(values, "zookeeperport", 1, 65535, zookeeper_port) ||
       !ReadInteger(values, "log_max_file_size", 1,
@@ -239,6 +264,7 @@ bool Config::loadFromFile(const std::string& file_path) {
   m_zookeeper_port = static_cast<uint16_t>(zookeeper_port);
   m_log_path = std::move(log_path);
   m_log_prefix = std::move(log_prefix);
+  m_log_enable = log_enable;
   m_log_max_file_size =
       static_cast<std::size_t>(log_max_file_size_mb) * 1024 * 1024;
   m_log_level = rpc_log_level;
@@ -268,6 +294,7 @@ std::string Config::get(const std::string& key) const {
   if (key == "zookeeperport") return std::to_string(m_zookeeper_port);
   if (key == "log_path") return m_log_path;
   if (key == "log_prefix") return m_log_prefix;
+  if (key == "log_enable") return m_log_enable ? "true" : "false";
   if (key == "log_max_file_size") {
     return std::to_string(m_log_max_file_size / 1024 / 1024);
   }
