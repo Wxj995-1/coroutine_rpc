@@ -235,8 +235,8 @@ void TcpConnection::output() {
       }
     }
 
-    m_write_buffer->recycleRead(rt);
     if (rt > 0) {
+      m_write_buffer->recycleRead(rt);
       InfoLog << "event=data_sent fd=" << m_fd
               << " peer=" << m_peer_addr->toString()
               << " bytes=" << rt
